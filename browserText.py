@@ -94,4 +94,5 @@ def table_to_csv(webTable, webTableList, fileName):
         df = pd.DataFrame(data = webTableList)
         df.to_csv("eskaton_jobs.csv", header=False,index=False)
 
+def update_csv(df, webTable):
 main()
