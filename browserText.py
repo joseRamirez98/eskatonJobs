@@ -21,6 +21,7 @@ def main():
         bodyList = get_table_body(webTable)
         table = headerList + bodyList
         table_to_csv(webTable, table, "eskaton_jobs.csv")
+        update_csv(webTable)
 
 
         
@@ -28,18 +29,19 @@ def main():
 Module that retieves text/data from the body of the webtable and stores the text/data into a 
 numOfRows x numOfColumns size list. 
 """ 
-def get_table_body(webTable):
+def get_table_body(webTableElem):
     # get number of rows
-    numOfRows = len(webTable.find_elements_by_xpath("//tr"))
+    numOfRows = len(webTableElem.find_elements_by_xpath("//tr"))
     # get number of columns
-    numOfColumns = len(webTable.find_elements_by_xpath("//tr[2]/td"))
+    numOfColumns = len(webTableElem.find_elements_by_xpath("//tr[2]/td"))
     allData = []
     # iterate over the rows, to ignore the headers we have started the i with '1'
     for i in range(1, numOfRows):
         ro = []
         for j in range(1, numOfColumns) :
             # get text from the i th row and j th column from table body
-            ro.append(webTable.find_element_by_xpath("//tr["+str(i)+"]/td["+str(j)+"]").text)
+            text = webTableElem.find_element_by_xpath("//tr["+str(i)+"]/td["+str(j)+"]").text
+            ro.append(text)
 
         allData.append(ro)
 
@@ -74,7 +76,7 @@ Module that checks if the eksaton_jobs.csv file exists. If it does not,
 create the file, otherwise, check if there was a new job was posted. If 
 a new job was posted, add it to the begining of the csv file.
 """
-def table_to_csv(webTable, webTableList, fileName):
+def table_to_csv(webTableElem, webTableList, fileName):
     try:
         df = pd.read_csv("eskaton_jobs.csv")
         #retrieve table header and first row of the table body
@@ -86,13 +88,42 @@ def table_to_csv(webTable, webTableList, fileName):
         df_first_row.append(list(df.iloc[0, :])) 
 
         #compare first row of the table body to first data row of dataframe
-        if first_table_row != df_first_row:
-            df2 = pd.DataFrame(data = first_table_row, columns=table_header[0])
-            df = pd.concat([df2, df], ignore_index=True)
-            df.to_csv("eskaton_jobs.csv", index=False)
+        if first_table_row == df_first_row:
+            return
+        df2 = pd.DataFrame(data = first_table_row, columns=table_header[0])
+        df = pd.concat([df2, df], ignore_index=True)
+        df.to_csv("eskaton_jobs.csv", index=False)
     except:
         df = pd.DataFrame(data = webTableList)
         df.to_csv("eskaton_jobs.csv", header=False,index=False)
 
-def update_csv(df, webTable):
+def update_csv(webTableElem):
+    #get the html table body from eskaton's website that contains
+    #current jobs available and store its data in a list
+    tableBodyList = get_table_body(webTableElem)
+    df = pd.read_csv("eskaton_jobs.csv")
+    dfRowCount = len(df)
+    dfRow = 0
+    dfList = []
+    foundRemovedJob = False
+    #convert the dataframe into a list
+    for row in range(0, dfRowCount):
+        dfList.append(list(df.iloc[row,:]))
+    #a loop to check to see if a job posting in the csv no longe exists in the
+    #table body that contains current job listings
+    for listing in tableBodyList:
+        if listing not in dfList:
+            df.drop([dfRow])
+            foundRemovedJob = True
+        dfRow += 1
+    
+    if foundRemovedJob != True:
+        print("No jobs to remove from csv")
+        return
+    df.to_csv("eskaton_jobs.csv", header=False,index=False)
+
+    
+
+
+
 main()
