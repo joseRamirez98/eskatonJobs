@@ -13,10 +13,9 @@ On line 104:
                         title='New Job!',
                         subtitle = jobLocation,
                         open='https://careers.eskaton.org/',
-                        sound='Hero',
-                        appIcon='https://cdn1.iconfinder.com/data/icons/twitter-ui-glyph/48/Sed-23-512.png')
+                        sound='Hero')
 ```
-The 'Hero' value passed into the sound parameter is a sound that is avaliable on Mac OS. If script is not being run on Mac OS, change the value of sound to a preinstalled sound on your OS. Use the special NAME “default” for the default notification sound.
+The 'Hero' value passed into the sound parameter is a sound that is avaliable on Mac OS. If the script is not being run on Mac OS, change the value of sound to a preinstalled sound on your OS. Use the special NAME “default” for the default notification sound.
 ## Requirements
 The selenium, pandas, and pync packages are required in order for the script to run. If not already installed, here are the commands to do so.
 
