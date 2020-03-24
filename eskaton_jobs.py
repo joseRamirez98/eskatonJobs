@@ -105,7 +105,7 @@ def notify_user(newJobsList, numOfNewJobs):
                         subtitle = jobLocation,
                         open='https://careers.eskaton.org/',
                         sound='Hero',
-                        appIcon='https://cdn1.iconfinder.com/data/icons/twitter-ui-glyph/48/Sed-23-512.png')
+                        appIcon='https://image.shutterstock.com/image-vector/notification-icon-isolated-on-black-600w-1239560479.jpg')
 
 """
 Method that retieves the text from the body of the webtable 
