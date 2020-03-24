@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "/Users/JoseRamirez/Desktop/Spring2020/CSC130/assignmentsJava/mergeSort"
 		}
 	]
 }

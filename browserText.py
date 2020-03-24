@@ -1,33 +1,115 @@
 import pandas as pd
+from os import path
+from pync import Notifier
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import presence_of_element_located
 
-#This example requires Selenium WebDriver 3.13 or newer
+# Script driver code. Create or update the csv file eskaton_jobs.csv
+# containing the web table data.
 def main():
+    # Follwing two lines ensures no browser window opens while
+    # running the script. 
     option = webdriver.ChromeOptions()
     option.add_argument('headless')
     with webdriver.Chrome(options=option) as driver:
         wait = WebDriverWait(driver, 10)
         driver.get("https://careers.eskaton.org/")
-        element = driver.find_element_by_xpath("//*[@id='DataTables_Table_0']/thead/tr/th[1]")
-        element.click()
-        element.click()
+        # Retrieve the row "Date Opened" element from the table header 
+        elem = driver.find_element_by_xpath("//*[@id='DataTables_Table_0']/thead/tr/th[1]")
+        # Clicking the element twice organizes the table 
+        # from new job listings to old listings.
+        elem.click()
+        elem.click()
 
-        webTable = driver.find_element_by_xpath("//*[@id='DataTables_Table_0']")
-        headerList = get_table_header(webTable)
-        bodyList = get_table_body(webTable)
-        table = headerList + bodyList
-        table_to_csv(webTable, table, "eskaton_jobs.csv")
-        update_csv(webTable)
+        webTableElem = driver.find_element_by_xpath("//*[@id='DataTables_Table_0']")
+        table_to_csv(webTableElem)
 
-
-        
 """
-Module that retieves text/data from the body of the webtable and stores the text/data into a 
-numOfRows x numOfColumns size list. 
+Check if the eskaton_jobs.csv file exists. If it does exist,
+check if there was a new job was posted, otherwise, create the file.
+Also update the csv file for removed job listings.
+"""
+def table_to_csv(webTableElem):
+    if path.isfile("/Users/Jose/Desktop/seleniumProject/eskaton_jobs.csv") is True:
+        df = pd.read_csv("eskaton_jobs.csv")
+        df, numOfNewJobs = find_new_jobs_posted(webTableElem, df)
+        print("number of new jobs: " + str(numOfNewJobs))
+        df = update_job_postings(webTableElem, df)
+        df.to_csv("eskaton_jobs.csv", index=False)
+        return
+    else:
+        print("create table")
+        header = get_table_header(webTableElem)
+        body = get_table_body(webTableElem)
+        table  = header + body
+        df = pd.DataFrame(data = table)
+        df.to_csv("eskaton_jobs.csv", header=False,index=False)
+        return
+
+"""
+Find new job(s) posted in Eskaton's website and adds them to
+the dataframe. If no new jobs were posted, return the original 
+dataframe. Otherwise, return the updated dataframe. The method
+also returns the number of new jobs found.
+"""
+def find_new_jobs_posted(webTableElem, df):
+    tableHeader = get_table_header(webTableElem)
+    tableBody = get_table_body(webTableElem)
+    dfList = dataframe_to_list(df)
+    newJobs = []
+    newJobsPosted = False
+    numOfNewJobs = 0
+    for listing in tableBody:
+        if listing not in dfList:
+            newJobs.append(listing)
+            newJobsPosted = True
+            numOfNewJobs += 1
+    if newJobsPosted is False:
+        return df, numOfNewJobs
+    notify_user(newJobs, newJobsPosted)
+    df2 = pd.DataFrame(data = newJobs, columns=tableHeader[0])
+    df = pd.concat([df2, df], ignore_index=True)
+    return df, numOfNewJobs
+
+#Method that searches Eskaton's job postings for removed job(s). 
+def update_job_postings(webTableElem, df):
+    table = get_table_body(webTableElem)
+    dfList = dataframe_to_list(df)
+    dfRow = 0 #Will keep track of which row in the dataframe is to be removed
+    for listing in dfList:
+        if listing not in table:
+            df = df.drop(dfRow, axis = 0)
+        dfRow += 1
+    return df
+
+#Method that converts a dataframe into a list of lists
+#Assumes the csv file used to populate dataframe exists.    
+def dataframe_to_list(df):
+    dfRowCount = len(df)
+    dfList = []
+    for row in range(0, dfRowCount):
+        dfList.append(list(df.iloc[row,:]))
+    return dfList
+
+#Output a notification to the computer with the new job(s) found.
+def notify_user(newJobsList, numOfNewJobs):
+    if numOfNewJobs < 1 or len(newJobsList) is 0:
+        return
+    for job in newJobsList:
+        careerTitle = job[1]
+        jobLocation = job[2]
+        Notifier.notify(careerTitle, 
+                        title='New Job!',
+                        subtitle = jobLocation,
+                        open='https://careers.eskaton.org/',
+                        sound='Hero',
+                        appIcon='https://cdn1.iconfinder.com/data/icons/twitter-ui-glyph/48/Sed-23-512.png')
+
+"""
+Method that retieves the text from the body of the webtable 
+and stores it into a numOfRows x numOfColumns size list. 
 """ 
 def get_table_body(webTableElem):
     # get number of rows
@@ -54,12 +136,11 @@ def get_table_header(webTableElme):
     tableHeader = [[]]
     for colm in range(0, numOfColumns):
         text = headerElem[colm].text
-        text = text.replace("\n", " ")
         tableHeader[0].append(text)
     
     return tableHeader
 """
-Module returns the first row of the table body in the form of a list.
+Retieves the first row of the html table stores the data in a list.
 """
 def get_first_body_row(webTable):
     rowElems = webTable.find_elements_by_xpath("//tbody/tr[1]/td")
@@ -67,63 +148,7 @@ def get_first_body_row(webTable):
     firstRow = [[]]
     for i in range(0, numOfColumns):
         text = rowElems[i].text
-        text = text.replace("\n", " ")
         firstRow[0].append(text)
     return firstRow
-
-"""
-Module that checks if the eksaton_jobs.csv file exists. If it does not,
-create the file, otherwise, check if there was a new job was posted. If 
-a new job was posted, add it to the begining of the csv file.
-"""
-def table_to_csv(webTableElem, webTableList, fileName):
-    try:
-        df = pd.read_csv("eskaton_jobs.csv")
-        #retrieve table header and first row of the table body
-        #needed to initialize the new dataframe
-        first_table_row = get_first_body_row(webTable)
-        table_header = get_table_header(webTable)
-        #convert first data row in dataframe into a list
-        df_first_row = []
-        df_first_row.append(list(df.iloc[0, :])) 
-
-        #compare first row of the table body to first data row of dataframe
-        if first_table_row == df_first_row:
-            return
-        df2 = pd.DataFrame(data = first_table_row, columns=table_header[0])
-        df = pd.concat([df2, df], ignore_index=True)
-        df.to_csv("eskaton_jobs.csv", index=False)
-    except:
-        df = pd.DataFrame(data = webTableList)
-        df.to_csv("eskaton_jobs.csv", header=False,index=False)
-
-def update_csv(webTableElem):
-    #get the html table body from eskaton's website that contains
-    #current jobs available and store its data in a list
-    tableBodyList = get_table_body(webTableElem)
-    df = pd.read_csv("eskaton_jobs.csv")
-    dfRowCount = len(df)
-    dfRow = 0
-    dfList = []
-    foundRemovedJob = False
-    #convert the dataframe into a list
-    for row in range(0, dfRowCount):
-        dfList.append(list(df.iloc[row,:]))
-    #a loop to check to see if a job posting in the csv no longe exists in the
-    #table body that contains current job listings
-    for listing in tableBodyList:
-        if listing not in dfList:
-            df.drop([dfRow])
-            foundRemovedJob = True
-        dfRow += 1
-    
-    if foundRemovedJob != True:
-        print("No jobs to remove from csv")
-        return
-    df.to_csv("eskaton_jobs.csv", header=False,index=False)
-
-    
-
-
 
 main()
