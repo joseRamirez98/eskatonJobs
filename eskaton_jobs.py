@@ -32,7 +32,7 @@ check if there was a new job was posted, otherwise, create the file.
 Also update the csv file for removed job listings.
 """
 def table_to_csv(webTableElem):
-    if path.isfile("/Users/Jose/Desktop/seleniumProject/eskaton_jobs.csv") is True:
+    if path.isfile(...) is True:
         df = pd.read_csv("eskaton_jobs.csv")
         df, numOfNewJobs = find_new_jobs_posted(webTableElem, df)
         print("number of new jobs: " + str(numOfNewJobs))
@@ -104,8 +104,7 @@ def notify_user(newJobsList, numOfNewJobs):
                         title='New Job!',
                         subtitle = jobLocation,
                         open='https://careers.eskaton.org/',
-                        sound='Hero',
-                        appIcon='https://image.shutterstock.com/image-vector/notification-icon-isolated-on-black-600w-1239560479.jpg')
+                        sound='Hero')
 
 """
 Method that retieves the text from the body of the webtable 
