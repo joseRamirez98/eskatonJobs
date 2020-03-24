@@ -16,7 +16,7 @@ On line 104:
                         sound='Hero')
 ```
 The 'Hero' value passed into the sound parameter is a sound that is avaliable on Mac OS. If the script is not being run on Mac OS, change the value of sound to a preinstalled sound on your OS. Use the special NAME “default” for the default notification sound.
-## Requirements
+## Packages
 The selenium, pandas, and pync packages are required in order for the script to run. If not already installed, here are the commands to do so.
 
 ```
